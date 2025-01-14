@@ -1,0 +1,35 @@
+; Model: Snapmaker J1 ({nozzle_diameter[0]}/{nozzle_diameter[1]})
+; Update: 20240428
+; Maintained by https://github.com/macdylan/3dp-configs
+; Printer : [printer_preset]
+; Profile : [print_preset]
+; Plate   : [physical_printer_preset]
+; --- initial_extruder: [initial_extruder]
+; --- has_wipe_tower: [has_wipe_tower]
+; --- total_toolchanges: [total_toolchanges]
+; --- T0: {is_extruder_used[0]}
+; --- T1: {is_extruder_used[1]}
+
+T[initial_extruder]
+
+M205 V[machine_max_jerk_x] ;Junction Deviation (mm)
+
+{if physical_printer_preset =~/.*IDEXDupl.*/ || physical_printer_preset =~/.*IDEXCopy.*/ }
+  M605 S2 X162 R0 ;IDEX Duplication
+{elsif physical_printer_preset =~/.*IDEXMirr.*/}
+  M605 S3 ;IDEX Mirror
+{elsif physical_printer_preset =~/.*IDEXBack.*/}
+  M605 S4 ;IDEX Backup
+{endif}
+
+M140 S{first_layer_bed_temperature[initial_extruder]}
+
+G28
+
+G0 Z100.0
+
+M190 R{first_layer_bed_temperature[initial_extruder]}
+
+M83
+
+; ready [physical_printer_preset]
