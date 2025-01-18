@@ -1,0 +1,24 @@
+{if current_extruder != next_extruder }
+
+G0 X{if current_extruder == 0}0{else}324{endif} F12000
+
+; Change T[current_extruder] -> T[next_extruder] (layer:[layer_num] tc:[total_toolchanges])
+T{next_extruder}
+
+M107 P[current_extruder] ;fan off T[current_extruder]
+M104 T[current_extruder] S{is_nil(idle_temperature[current_extruder]) ? temperature[current_extruder] + standby_temperature_delta : idle_temperature[current_extruder]} ;standby T[current_extruder]
+
+; set bed temp: {filament_type[current_extruder]}({bed_temperature[current_extruder]}) -> {filament_type[next_extruder]}({bed_temperature[next_extruder]})
+M140 S{min(bed_temperature[current_extruder], bed_temperature[next_extruder])}
+{endif}
+
+M109 T[next_extruder] S{layer_num < 1 ? first_layer_temperature[next_extruder] : temperature[next_extruder]} C3 W1 ;wait T{next_extruder}
+{if layer_num >= disable_fan_first_layers[next_extruder]}
+  M106 P[next_extruder] S{min_fan_speed[next_extruder] * 255.0 / 100.0} ; restore fan speed for T[next_extruder]
+{endif}
+
+{if layer_z <= (first_layer_height + 0.001)}
+  M204 S[first_layer_acceleration] ;first layer accel
+{elsif default_acceleration > 0}
+  M204 S[default_acceleration] ;default accel
+{endif}
