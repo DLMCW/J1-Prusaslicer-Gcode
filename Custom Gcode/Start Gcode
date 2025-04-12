@@ -10,6 +10,11 @@
 ; --- T0: {is_extruder_used[0]}
 ; --- T1: {is_extruder_used[1]}
 
+M201 X[machine_max_acceleration_x] Y[machine_max_acceleration_y] Z[machine_max_acceleration_z] E[machine_max_acceleration_e]
+M203 X[machine_max_feedrate_x] Y[machine_max_feedrate_y] Z[machine_max_feedrate_z] E[machine_max_feedrate_e]
+M204 P[machine_max_acceleration_extruding] R[machine_max_acceleration_retracting] T[machine_max_acceleration_travel]
+M205 X[machine_max_jerk_x] Y[machine_max_jerk_y] Z[machine_max_jerk_z] E[machine_max_jerk_e]
+
 T[initial_extruder]
 
 M205 V[machine_max_jerk_x] ;Junction Deviation (mm)
@@ -24,12 +29,152 @@ M205 V[machine_max_jerk_x] ;Junction Deviation (mm)
 
 M140 S{first_layer_bed_temperature[initial_extruder]}
 
+; you can clean the nozzle
+{if is_extruder_used[0]}M104 T0 S165{endif}
+{if is_extruder_used[1]}M104 T1 S165{endif}
+M204 S100
 G28
 
 G0 Z100.0
+{if is_extruder_used[0]}
+    T0
+    G0 X{if 0 == 0}80{else}240{endif} Y0 F6840.0
+    {endif}
+{if is_extruder_used[1]}
+    T1
+    G0 X{if 1 == 0}80{else}240{endif} Y0 F6840.0
+    {endif}
 
 M190 R{first_layer_bed_temperature[initial_extruder]}
 
+{if 1==1}; LED
+  M355 S1 P64
+  G4 P100
+  M355 S1 P128
+  G4 P100
+  M355 S1 P64
+  G4 P200
+  M355 S1 P255
+  G4 P100
+{endif}
+G28 X Y
+
 M83
+{if 1==1 && max(first_layer_bed_temperature[initial_extruder], bed_temperature[initial_extruder]) >= 90}
+G0 Z0.06 ;raise z to counteract thermal expansion
+G92 Z0 ;reset z
+{endif}
+
+{if is_extruder_used[0]}M104 T0 S{max(250, min(290, first_layer_temperature[0] + 15))}{endif}
+{if is_extruder_used[1]}M104 T1 S{max(250, min(290, first_layer_temperature[1] + 15))}{endif}
+
+{if is_extruder_used[0] and initial_extruder != 0}
+  T0
+M104 S{max(250, min(290, first_layer_temperature[0] + 15))}; common flush temp
+G0 Z1.6 F240.0
+G0 X{if 0 == 0}147.0{else}177.0{endif} F6840.0
+G0 Y0 F6840.0
+
+M109 S{max(250, min(290, first_layer_temperature[0] + 15))} C2 W1; common flush temp
+G1 E20 F80.0
+G92 E0
+
+M106 S{min(255, (max_fan_speed[0] + 10) * 2.55)}
+
+M104 S{first_layer_temperature[0] + 5}
+
+G1 E12.0 F200
+G92 E0
+G1 E8.0 Z4.6 F200
+G92 E0
+
+G0 Z5.6 F200
+M107
+
+G0 X{if 0 == 0}137.0{else}187.0{endif} F6840.0
+G0 Z0.3 F240.0
+M109 S{first_layer_temperature[0]} C3 W1
+G1 E3 F200
+G92 E0
+G1 X{if 0 == 0}0{else}324{endif} E8.5437 F6840.0
+G92 E0
+
+G1 E-{retract_length_toolchange[0]} F200
+G92 E0
+G0 Y20 F6840.0
+
+  M104 S{is_nil(idle_temperature[0]) ? temperature[0] + standby_temperature_delta : idle_temperature[0]}
+{endif}
+{if is_extruder_used[1] and initial_extruder != 1}
+  T1
+M104 S{max(250, min(290, first_layer_temperature[1] + 15))}; common flush temp
+G0 Z1.6 F240.0
+G0 X{if 1 == 0}147.0{else}177.0{endif} F6840.0
+G0 Y0 F6840.0
+
+M109 S{max(250, min(290, first_layer_temperature[1] + 15))} C2 W1; common flush temp
+G1 E20 F80.0
+G92 E0
+
+M106 S{min(255, (max_fan_speed[1] + 10) * 2.55)}
+
+M104 S{first_layer_temperature[1] + 5}
+
+G1 E12.0 F200
+G92 E0
+G1 E8.0 Z4.6 F200
+G92 E0
+
+G0 Z5.6 F200
+M107
+
+G0 X{if 1 == 0}137.0{else}187.0{endif} F6840.0
+G0 Z0.3 F240.0
+M109 S{first_layer_temperature[1]} C3 W1
+G1 E3 F200
+G92 E0
+G1 X{if 1 == 0}0{else}324{endif} E8.5437 F6840.0
+G92 E0
+
+G1 E-{retract_length_toolchange[1]} F200
+G92 E0
+G0 Y20 F6840.0
+
+  M104 S{is_nil(idle_temperature[1]) ? temperature[1] + standby_temperature_delta : idle_temperature[1]}
+{endif}
+
+T[initial_extruder]
+M104 S{max(250, min(290, first_layer_temperature[initial_extruder] + 15))}; common flush temp
+G0 Z1.6 F240.0
+G0 X{if initial_extruder == 0}147.0{else}177.0{endif} F6840.0
+G0 Y0 F6840.0
+
+M109 S{max(250, min(290, first_layer_temperature[initial_extruder] + 15))} C2 W1; common flush temp
+G1 E20 F80.0
+G92 E0
+
+M106 S{min(255, (max_fan_speed[initial_extruder] + 10) * 2.55)}
+
+M104 S{first_layer_temperature[initial_extruder] + 5}
+
+G1 E12.0 F200
+G92 E0
+G1 E8.0 Z4.6 F200
+G92 E0
+
+G0 Z5.6 F200
+M107
+
+G0 X{if initial_extruder == 0}137.0{else}187.0{endif} F6840.0
+G0 Z0.3 F240.0
+M109 S{first_layer_temperature[initial_extruder]} C3 W1
+G1 E3 F200
+G92 E0
+G1 X{if initial_extruder == 0}0{else}324{endif} E8.5437 F6840.0
+G92 E0
+
+G1 E-{retract_length[initial_extruder]} F200
+G92 E0
+G0 Y20 F6840.0
 
 ; ready [physical_printer_preset]
